@@ -2,13 +2,13 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Oracolo di Morrigan</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      background: #ffffff;
+      background: #fff;
       color: #222;
       font-family: "Garamond", serif;
       display: flex;
@@ -21,36 +21,153 @@
       background-repeat: no-repeat;
       background-position: top 2% right 2%;
       background-size: 80px;
+      user-select: none;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% {
+        box-shadow: 0 0 15px 5px rgba(81,153,215, 0.4);
+        opacity: 0.9;
+      }
+      50% {
+        box-shadow: 0 0 40px 15px rgba(81,153,215, 0.51);
+        opacity: 1;
+      }
+    }
+
+    @keyframes shine {
+      0% { left: -100%; }
+      50% { left: 100%; }
+      100% { left: 100%; }
+    }
+
+    @keyframes floatText {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes fadeZoomIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     .sfera {
       width: 100px;
       height: 100px;
       border-radius: 50%;
-      background: radial-gradient(circle, #dcdcdc 0%, #ffffff 70%, #ccc 100%);
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+      background: radial-gradient(circle, #dcdcdc 0%, #fff 70%, #ccc 100%);
+      box-shadow: 0 0 15px 5px rgba(50, 124, 170, 0.4);
       margin: 20px auto;
+      animation: glowPulse 4s ease-in-out infinite;
+      cursor: pointer;
+      transition: box-shadow 0.3s ease;
+      position: relative;
+      user-select: none;
+      opacity: 0.95;
+    }
+
+    /* Quando la sfera è attiva (cliccata) cambia il colore del bagliore */
+    .sfera.attiva {
+      animation: none;
+      box-shadow: 0 0 40px 15px rgba(244, 210, 105, 0.8);
+    }
+
+    .sfera:hover {
+      box-shadow: 0 0 60px rgba(244, 210, 105, 0.9);
     }
 
     h1 {
       font-size: 2.0rem;
-      margin-bottom: 10px;
+      margin-bottom: 35px; /* modificato qui */
+      margin-top: -50px;
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+      animation: floatText 5s ease-in-out infinite;
+      cursor: default;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shine 5s infinite;
     }
 
     .profezia {
       font-style: italic;
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       max-width: 600px;
-      margin: 20px auto;
+      margin: 30px auto;
       opacity: 0;
-      transition: opacity 1s ease;
+      transform: scale(0.95);
+      min-height: 80px;
+      user-select: text;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+      position: relative;
+      color: #222;
+    }
+
+    .profezia.mostra {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+      animation: fadeZoomIn 0.8s ease-out forwards;
+      animation-delay: 0;
+    }
+
+    .profezia::after {
+      content: attr(data-text);
+      display: block;
+      transform: scaleY(-1);
+      opacity: 0.3;
+      filter: blur(1px);
+      margin-top: 2px;
+      color: inherit;
+      max-width: 600px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      user-select: none;
+      pointer-events: none;
+      font-style: italic;
+      font-size: 1.8rem;
+    }
+
+    .indica {
+      font-size: 1rem;
+      color: #777;
+      margin-top: 15px;
+      font-style: normal;
+      opacity: 0.7;
+      cursor: default;
+      user-select: none;
+      transition: color 0.5s ease, opacity 0.5s ease;
+    }
+
+    .indica.nascondi {
+      color: #fff;
+      opacity: 0.1;
+      pointer-events: none;
+      transition: color 0.5s ease, opacity 0.5s ease;
     }
   </style>
 </head>
 <body>
   <h1>Io sono la Morrigan, il mio dono è la verità.</h1>
-  <div class="sfera"></div>
+  <div class="sfera" id="sfera" title="Clicca per rivelare la profezia"></div>
   <div class="profezia" id="profezia"></div>
+  <div class="indica" id="indica">Clicca sulla sfera per far comparire la profezia</div>
 
   <script>
     const frasi = [
@@ -196,9 +313,27 @@
     ];
 
     const profezia = document.getElementById("profezia");
-    const scelta = frasi[Math.floor(Math.random() * frasi.length)];
-    profezia.innerText = '“' + scelta + '”';
-    setTimeout(() => profezia.style.opacity = 1, 500);
+    const sfera = document.getElementById("sfera");
+    const indica = document.getElementById("indica");
+
+    sfera.addEventListener("click", () => {
+      if (!profezia.classList.contains("mostra")) {
+        // Ferma l'animazione e cambia il glow
+        sfera.classList.add("attiva");
+
+        setTimeout(() => {
+          const scelta = frasi[Math.floor(Math.random() * frasi.length)];
+          profezia.innerText = '“' + scelta + '”';
+          profezia.setAttribute('data-text', '“' + scelta + '”');
+
+          profezia.classList.add("mostra");
+          indica.classList.add("nascondi");
+          // Torna al glow blu originale con animazione
+          sfera.classList.remove("attiva");
+        }, 4000);
+      }
+    });
   </script>
 </body>
 </html>
+
